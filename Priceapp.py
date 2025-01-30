@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
-
+import os
 app = Flask(__name__)
 
 
