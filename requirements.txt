@@ -3,8 +3,8 @@ pandas==1.5.2
 numpy==1.23.5
 scikit-learn==1.2.0
 xgboost==1.6.1
-tensorflow==2.17.1
-keras==2.17.1
+tensorflow==2.10.0
+keras==2.10.0
 scipy==1.9.3
 dill==0.3.4
 cloudpickle==2.2.1
