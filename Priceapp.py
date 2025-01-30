@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 app = Flask(__name__)
 
+
 # Load your dataset
 df = pd.read_csv('Cropprice.csv')
 
@@ -143,6 +144,7 @@ def predict():
         'predicted_price_xgb': predicted_price_xgb,
         'predicted_price_nn': predicted_price_nn
     })
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=8080, debug=True)
+
+
