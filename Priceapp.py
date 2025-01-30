@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
-from tensorflow.keras.models import Sequential, load_model
+from keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense
 from sklearn.model_selection import train_test_split
 from flask import Flask, request, jsonify
