@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
-import os
+
 
 app = Flask(__name__)
 
@@ -120,7 +120,8 @@ def predict():
 
     except Exception as e:
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+  if __name__ == '__main__':
+    import os
+    port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
+    app.run(host="0.0.0.0", port=port)
+    print(f"Running on port: {port}")
