@@ -10,7 +10,6 @@ from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 
-
 app = Flask(__name__)
 
 # Load Dataset
@@ -97,13 +96,10 @@ def predict():
 
         # Encoding function
         def encode_column(column_name, encoder):
-            try:
-                return encoder.transform(new_data[column_name])
-            except ValueError:
-                unique_values = list(encoder.classes_) + list(new_data[column_name].unique())
-                encoder.classes_ = np.array(unique_values)
-                return encoder.transform(new_data[column_name])
-        
+            if data[column_name] not in encoder.classes_:
+                return jsonify({'error': f"Invalid value '{data[column_name]}' for {column_name}"}), 400
+            return encoder.transform(new_data[column_name])
+
         new_data['state'] = encode_column('state', state_encoder)
         new_data['district'] = encode_column('district', district_encoder)
         new_data['market'] = encode_column('market', market_encoder)
@@ -120,9 +116,9 @@ def predict():
 
     except Exception as e:
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
-  if __name__ == '__main__':
+
+if __name__ == '__main__':
     import os
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
-    app.run(host="0.0.0.0", port=port)
     print(f"Running on port: {port}")
-
+    app.run(host="0.0.0.0", port=port)
