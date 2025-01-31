@@ -112,8 +112,6 @@ def recommend():
     prediction = recommendation(N, P, K, temperature, humidity, ph, rainfall)
 
     return jsonify({'predicted_crop': prediction})
-
-@app.route('/predict', methods=['POST'])
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
@@ -156,6 +154,7 @@ def predict():
         return jsonify({'error': f'ValueError: {str(ve)}'}), 400
     except Exception as e:
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     print(f"Running on port: {port}")  # Debug statement
