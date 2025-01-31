@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 import logging
 import os
+from memory_profiler import profile
 
 app = Flask(__name__)
 
@@ -118,6 +119,7 @@ def recommend():
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+@profile
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
@@ -174,7 +176,3 @@ if __name__ == '__main__':
     logging.info("Running on port: %d", port)  # Debug statement
     app.run(host="0.0.0.0", port=port)
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
-    print(f"Running on port: {port}")  # Debug statement
-    app.run(host="0.0.0.0", port=port)
