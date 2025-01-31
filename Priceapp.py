@@ -189,8 +189,8 @@ def predict():
 
         return jsonify({
             'predicted_price_xgb': predicted_price_xgb,
-             'predicted_price_nn': predicted_price_nn
-            )}
+            'predicted_price_nn': predicted_price_nn
+        })
     except ValueError as ve:
         logging.error("ValueError: %s", str(ve))  # Log specific error
         return jsonify({'error': f'ValueError: %s' % str(ve)}), 400
