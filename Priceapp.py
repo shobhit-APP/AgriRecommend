@@ -179,4 +179,3 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     logging.info("Running on port: %d", port)  # Debug statement
     app.run(host="0.0.0.0", port=port)
-
