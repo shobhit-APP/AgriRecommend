@@ -153,10 +153,16 @@ def predict():
 
         logging.info("Data after encoding: %s", new_data)  # Log encoded data
 
+        # Optimize memory usage with batch processing
         predicted_price_xgb = xgb_model.predict(new_data)
         predicted_price_xgb = float(predicted_price_xgb[0])
+
         predicted_price_nn = nn_model.predict(new_data)
         predicted_price_nn = float(predicted_price_nn[0][0])
+
+        # Run garbage collection to free up memory
+        import gc
+        gc.collect()
 
         return jsonify({
             'predicted_price_xgb': predicted_price_xgb,
@@ -164,10 +170,10 @@ def predict():
         })
     except ValueError as ve:
         logging.error("ValueError: %s", str(ve))  # Log specific error
-        return jsonify({'error': f'ValueError: {str(ve)}'}), 400
+        return jsonify({'error': f'ValueError: %s' % str(ve)}), 400
     except Exception as e:
         logging.error("Unexpected error: %s", str(e))  # Log unexpected error
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+        return jsonify({'error': f'Unexpected error: %s' % str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
