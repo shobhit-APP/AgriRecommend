@@ -146,9 +146,9 @@ def predict():
             'crop_name': [data['crop_name']],
             'min_price': [data['min_price']],
             'max_price': [data['max_price']],
-            'arrival_day': [data.get('arrival_day')],
-            'arrival_month': [data.get('arrival_month')],
-            'arrival_weekday': [data.get('arrival_weekday')]
+            'arrival_day': [data.get('arrival_day', 0)],
+            'arrival_month': [data.get('arrival_month', 0)],
+            'arrival_weekday': [data.get('arrival_weekday', 0)]
         })
 
         new_data['min_price'] = new_data['min_price'].astype(float)
