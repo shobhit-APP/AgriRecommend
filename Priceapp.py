@@ -116,8 +116,10 @@ def predict():
         new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
 
         # Predictions
-        predicted_price_xgb = float(xgb_model.predict(new_data)[0])
-        predicted_price_nn = float(nn_model.predict(new_data)[0][0])
+       predicted_price_xgb = xgb_model.predict(new_data)
+       predicted_price_xgb = float(predicted_price_xgb[0])
+       predicted_price_nn = nn_model.predict(new_data)
+       predicted_price_nn = float(predicted_price_nn[0][0])
 
         return jsonify({
             'predicted_price_xgb': predicted_price_xgb,
