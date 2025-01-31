@@ -94,11 +94,12 @@ def recommend():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
-    app.logger.info(f"Received data: {data}")
+    app.logger.info(f"Received data for prediction: {data}")
     
     required_fields = ['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']
     for field in required_fields:
         if field not in data:
+            app.logger.error(f"Missing field: {field}")
             return jsonify({'error': f'Missing field: {field}'}), 400
     
     try:
@@ -146,7 +147,6 @@ def predict():
     except Exception as e:
         app.logger.error(f'Unexpected error: {str(e)}')
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     print(f"Running on port: {port}")  # Debug statement
