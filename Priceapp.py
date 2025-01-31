@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
+import logging
 import os
 
 app = Flask(__name__)
@@ -112,7 +113,7 @@ def recommend():
     prediction = recommendation(N, P, K, temperature, humidity, ph, rainfall)
 
     return jsonify({'predicted_crop': prediction})
-import logging
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
