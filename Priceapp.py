@@ -14,17 +14,17 @@ import os
 app = Flask(__name__)
 
 # Adjust the path according to the actual location of Cropprice.csv
-file_path = os.path.join('model', 'Cropprice.csv')
+file_path = os.path.join('Model', 'Cropprice.csv')
 df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
 
 # Adjust paths according to your project structure
-minmax_path = os.path.join('model', 'minmaxscaler.pkl')
-stand_path = os.path.join('model', 'standscaler.pkl')
-model_path = os.path.join('model', 'model.pkl')
-xgb_model_path = os.path.join('model', 'cropPricePredictionModel.pkl')
-nn_model_path = os.path.join('model', 'nn_model.keras')
+minmax_path = os.path.join('Model', 'minmaxscaler.pkl')
+stand_path = os.path.join('Model', 'standscaler.pkl')
+model_path = os.path.join('Model', 'model.pkl')
+xgb_model_path = os.path.join('Model', 'cropPricePredictionModel.pkl')
+nn_model_path = os.path.join('Model', 'nn_model.keras')
 
 # Load Pretrained Models & Scalers
 with open(minmax_path, 'rb') as minmax_file:
