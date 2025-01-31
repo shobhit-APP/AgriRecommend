@@ -11,6 +11,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 import logging
 import os
+from sklearn.utils.validation import check_array
+from memory_profiler import profile
+import gc
 
 app = Flask(__name__)
 
@@ -89,7 +92,7 @@ nn_model = Sequential([
     Dense(1)  # Output layer for regression
 ])
 nn_model.compile(optimizer='adam', loss='mean_squared_error')
-nn_model.fit(X_train, y_train, epochs=20, batch_size=128, validation_data=(X_test, y_test))
+nn_model.fit(X_train, y_train, epochs=20, batch_size=32, validation_data=(X_test, y_test))
 nn_model.save('nn_model.keras')  # Save model in Keras native format
 
 @app.route('/')
@@ -119,6 +122,7 @@ def recommend():
 logging.basicConfig(level=logging.INFO)
 
 @app.route('/predict', methods=['POST'])
+@profile
 def predict():
     try:
         data = request.get_json()
@@ -153,15 +157,17 @@ def predict():
 
         logging.info("Data after encoding: %s", new_data)  # Log encoded data
 
-        # Optimize memory usage with batch processing
-        predicted_price_xgb = xgb_model.predict(new_data)
-        predicted_price_xgb = float(predicted_price_xgb[0])
+        # Ensure the feature names are consistent with those used during fitting
+        new_data_checked = check_array(new_data, dtype=np.float32, ensure_2d=True, allow_nd=False)
+        new_data_scaled = mx.transform(new_data_checked)
+        new_data_standardized = sc.transform(new_data_scaled)
 
-        predicted_price_nn = nn_model.predict(new_data)
+        predicted_price_xgb = xgb_model.predict(new_data_standardized)
+        predicted_price_xgb = float(predicted_price_xgb[0])
+        predicted_price_nn = nn_model.predict(new_data_standardized)
         predicted_price_nn = float(predicted_price_nn[0][0])
 
         # Run garbage collection to free up memory
-        import gc
         gc.collect()
 
         return jsonify({
