@@ -90,10 +90,17 @@ def recommend():
     )
 
     return jsonify({'predicted_crop': prediction})
-
+    
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
+    app.logger.info(f"Received data: {data}")
+    
+    required_fields = ['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing field: {field}'}), 400
+    
     try:
         new_data = pd.DataFrame({
             'state': [data['state']],
@@ -107,7 +114,7 @@ def predict():
         # Ensure data types are correct
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
-
+        
         # Handling unseen labels by assigning a default encoding
         def encode_column(column_name, encoder):
             try:
@@ -124,8 +131,8 @@ def predict():
             new_data['market'] = encode_column('market', market_encoder)
             new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
         except ValueError as e:
-            response = jsonify({'error': f'Encoding error: {str(e)}'})
-            return response, 400
+            app.logger.error(f'Encoding error: {str(e)}')
+            return jsonify({'error': f'Encoding error: {str(e)}'}), 400
 
         predicted_price_xgb = xgb_model.predict(new_data)
         predicted_price_xgb = float(predicted_price_xgb[0])
@@ -137,8 +144,8 @@ def predict():
             'predicted_price_nn': predicted_price_nn
         })
     except Exception as e:
-        response = jsonify({'error': f'Unexpected error: {str(e)}'})
-        return response, 500
+        app.logger.error(f'Unexpected error: {str(e)}')
+        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
