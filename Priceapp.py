@@ -112,16 +112,13 @@ def predict():
             'max_price': [data['max_price']]
         })
         
-        # Ensure data types are correct
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
         
-        # Handling unseen labels by assigning a default encoding
         def encode_column(column_name, encoder):
             try:
                 return encoder.transform(new_data[column_name])
             except ValueError:
-                # Add new classes to the encoder
                 unique_values = list(encoder.classes_) + list(new_data[column_name].unique())
                 encoder.classes_ = np.array(unique_values)
                 return encoder.transform(new_data[column_name])
@@ -147,6 +144,7 @@ def predict():
     except Exception as e:
         app.logger.error(f'Unexpected error: {str(e)}')
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     print(f"Running on port: {port}")  # Debug statement
