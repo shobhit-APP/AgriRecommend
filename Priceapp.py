@@ -23,6 +23,12 @@ df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
 
+# Extract useful features from arrival_date
+df['arrival_date'] = pd.to_datetime(df['arrival_date'])
+df['arrival_day'] = df['arrival_date'].dt.day
+df['arrival_month'] = df['arrival_date'].dt.month
+df['arrival_weekday'] = df['arrival_date'].dt.weekday
+
 # Adjust paths according to your project structure
 minmax_path = os.path.join('Model', 'minmaxscaler.pkl')
 stand_path = os.path.join('Model', 'standscaler.pkl')
@@ -77,7 +83,7 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price']]  # Exclude 'arrival_date'
+X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price', 'arrival_day', 'arrival_month', 'arrival_weekday']]
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -134,11 +140,17 @@ def predict():
             'market': [data['market']],
             'crop_name': [data['crop_name']],
             'min_price': [data['min_price']],
-            'max_price': [data['max_price']]
+            'max_price': [data['max_price']],
+            'arrival_day': [data['arrival_day']],
+            'arrival_month': [data['arrival_month']],
+            'arrival_weekday': [data['arrival_weekday']]
         })
 
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
+        new_data['arrival_day'] = new_data['arrival_day'].astype(int)
+        new_data['arrival_month'] = new_data['arrival_month'].astype(int)
+        new_data['arrival_weekday'] = new_data['arrival_weekday'].astype(int)
 
         logging.info("Data after initial processing: %s", new_data)  # Log processed data
 
