@@ -89,7 +89,7 @@ nn_model = Sequential([
     Dense(1)  # Output layer for regression
 ])
 nn_model.compile(optimizer='adam', loss='mean_squared_error')
-nn_model.fit(X_train, y_train, epochs=50, batch_size=128, validation_data=(X_test, y_test))
+nn_model.fit(X_train, y_train, epochs=20, batch_size=128, validation_data=(X_test, y_test))
 nn_model.save('nn_model.keras')  # Save model in Keras native format
 
 @app.route('/')
