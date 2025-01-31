@@ -23,11 +23,14 @@ df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
 
-# Extract useful features from arrival_date
-df['arrival_date'] = pd.to_datetime(df['arrival_date'])
-df['arrival_day'] = df['arrival_date'].dt.day
-df['arrival_month'] = df['arrival_date'].dt.month
-df['arrival_weekday'] = df['arrival_date'].dt.weekday
+# Check if 'arrival_date' column exists
+if 'arrival_date' in df.columns:
+    df['arrival_date'] = pd.to_datetime(df['arrival_date'])
+    df['arrival_day'] = df['arrival_date'].dt.day
+    df['arrival_month'] = df['arrival_date'].dt.month
+    df['arrival_weekday'] = df['arrival_date'].dt.weekday
+else:
+    print("Column 'arrival_date' is missing from the dataset")
 
 # Adjust paths according to your project structure
 minmax_path = os.path.join('Model', 'minmaxscaler.pkl')
@@ -83,7 +86,10 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price', 'arrival_day', 'arrival_month', 'arrival_weekday']]
+X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price']]  # Include arrival_date columns if available
+if 'arrival_day' in df.columns and 'arrival_month' in df.columns and 'arrival_weekday' in df.columns:
+    X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price', 'arrival_day', 'arrival_month', 'arrival_weekday']]
+
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -123,7 +129,6 @@ def recommend():
 
     return jsonify({'predicted_crop': prediction})
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -141,16 +146,16 @@ def predict():
             'crop_name': [data['crop_name']],
             'min_price': [data['min_price']],
             'max_price': [data['max_price']],
-            'arrival_day': [data['arrival_day']],
-            'arrival_month': [data['arrival_month']],
-            'arrival_weekday': [data['arrival_weekday']]
+            'arrival_day': [data.get('arrival_day')],
+            'arrival_month': [data.get('arrival_month')],
+            'arrival_weekday': [data.get('arrival_weekday')]
         })
 
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
-        new_data['arrival_day'] = new_data['arrival_day'].astype(int)
-        new_data['arrival_month'] = new_data['arrival_month'].astype(int)
-        new_data['arrival_weekday'] = new_data['arrival_weekday'].astype(int)
+        new_data['arrival_day'] = new_data['arrival_day'].astype(float)
+        new_data['arrival_month'] = new_data['arrival_month'].astype(float)
+        new_data['arrival_weekday'] = new_data['arrival_weekday'].astype(float)
 
         logging.info("Data after initial processing: %s", new_data)  # Log processed data
 
@@ -184,8 +189,8 @@ def predict():
 
         return jsonify({
             'predicted_price_xgb': predicted_price_xgb,
-            'predicted_price_nn': predicted_price_nn
-        })
+             'predicted_price_nn': predicted_price_nn
+            )}
     except ValueError as ve:
         logging.error("ValueError: %s", str(ve))  # Log specific error
         return jsonify({'error': f'ValueError: %s' % str(ve)}), 400
