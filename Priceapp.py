@@ -114,9 +114,10 @@ def recommend():
     return jsonify({'predicted_crop': prediction})
 
 @app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['POST'])
 def predict():
-    data = request.get_json()
     try:
+        data = request.get_json()
         new_data = pd.DataFrame({
             'state': [data['state']],
             'district': [data['district']],
@@ -125,29 +126,22 @@ def predict():
             'min_price': [data['min_price']],
             'max_price': [data['max_price']]
         })
-        
-        # Ensure data types are correct
+
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
 
-        # Handling unseen labels by assigning a default encoding
         def encode_column(column_name, encoder):
             try:
                 return encoder.transform(new_data[column_name])
             except ValueError:
-                # Add new classes to the encoder
                 unique_values = list(encoder.classes_) + list(new_data[column_name].unique())
                 encoder.classes_ = np.array(unique_values)
                 return encoder.transform(new_data[column_name])
-        
-        try:
-            new_data['state'] = encode_column('state', state_encoder)
-            new_data['district'] = encode_column('district', district_encoder)
-            new_data['market'] = encode_column('market', market_encoder)
-            new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
-        except ValueError as e:
-            response = jsonify({'error': f'Encoding error: {str(e)}'})
-            return response, 400
+
+        new_data['state'] = encode_column('state', state_encoder)
+        new_data['district'] = encode_column('district', district_encoder)
+        new_data['market'] = encode_column('market', market_encoder)
+        new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
 
         predicted_price_xgb = xgb_model.predict(new_data)
         predicted_price_xgb = float(predicted_price_xgb[0])
@@ -158,9 +152,10 @@ def predict():
             'predicted_price_xgb': predicted_price_xgb,
             'predicted_price_nn': predicted_price_nn
         })
+    except ValueError as ve:
+        return jsonify({'error': f'ValueError: {str(ve)}'}), 400
     except Exception as e:
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     print(f"Running on port: {port}")  # Debug statement
