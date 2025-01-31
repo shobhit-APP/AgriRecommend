@@ -129,5 +129,5 @@ def predict():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
-    print(f"Running on port: {port}")
+    print(f"Running on port: {port}")  # Debug statement
     app.run(host="0.0.0.0", port=port)
