@@ -18,18 +18,24 @@ df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
 
+# Adjust paths according to your project structure
+minmax_path = os.path.join('model', 'minmaxscaler.pkl')
+stand_path = os.path.join('model', 'standscaler.pkl')
+model_path = os.path.join('model', 'model.pkl')
+xgb_model_path = os.path.join('model', 'cropPricePredictionModel.pkl')
+nn_model_path = os.path.join('model', 'nn_model.keras')
 # Load Pretrained Models & Scalers
-with open('minmaxscaler.pkl', 'rb') as minmax_file:
+with open(minmax_path, 'rb') as minmax_file:
     mx = pickle.load(minmax_file)
 
-with open('standscaler.pkl', 'rb') as stand_file:
+with open(stand_path, 'rb') as stand_file:
     sc = pickle.load(stand_file)
 
-with open('model.pkl', 'rb') as model_file:
+with open(model_path, 'rb') as model_file:
     randclf = pickle.load(model_file)
 
-xgb_model = pickle.load(open('cropPricePredictionModel.pkl', 'rb'))
-nn_model = load_model('nn_model.keras')  # Load neural network model
+xgb_model = pickle.load(open(xgb_model_path, 'rb'))
+nn_model = load_model(nn_model_path)  # Load neural network model
 
 # Crop Dictionary
 crop_dict = {
