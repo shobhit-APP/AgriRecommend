@@ -77,7 +77,7 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name','arrivalDate','min_price', 'max_price']]  # Exclude 'arrival_date'
+X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price']]  # Exclude 'arrival_date'
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -133,7 +133,6 @@ def predict():
             'district': [data['district']],
             'market': [data['market']],
             'crop_name': [data['crop_name']],
-            'arrivalDate':[data['arrivalDate']],
             'min_price': [data['min_price']],
             'max_price': [data['max_price']]
         })
