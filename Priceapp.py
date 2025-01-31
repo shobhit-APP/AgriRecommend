@@ -39,7 +39,7 @@ with open(model_path, 'rb') as model_file:
 xgb_model = pickle.load(open(xgb_model_path, 'rb'))
 nn_model = load_model(nn_model_path)  # Load neural network model
 
-# Crop Dictionary
+# Crop dictionary to map numbers back to crop names
 crop_dict = {
     1: 'rice', 2: 'maize', 3: 'jute', 4: 'cotton', 5: 'coconut',
     6: 'papaya', 7: 'orange', 8: 'apple', 9: 'muskmelon', 10: 'watermelon',
@@ -48,7 +48,17 @@ crop_dict = {
     20: 'kidneybeans', 21: 'chickpea', 22: 'coffee'
 }
 
-# Fit Label Encoders
+# Define the recommendation function
+def recommendation(N, P, K, temperature, humidity, ph, rainfall):
+    features = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
+    features_scaled = mx.transform(features)
+    features_standardized = sc.transform(features_scaled)
+    prediction = randclf.predict(features_standardized)
+    predicted_class = int(prediction[0])
+    crop_name = crop_dict.get(predicted_class, "Unknown crop")
+    return crop_name
+
+# Fit Label Encoders comprehensively
 def fit_label_encoders(df, column_name, additional_values=[]):
     le = LabelEncoder()
     unique_values = list(df[column_name].unique()) + additional_values
@@ -62,16 +72,25 @@ district_encoder = fit_label_encoders(df, 'district', ['Basti', 'Shimoga'])
 market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Market'])
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
-# Recommendation Function
-def recommendation(N, P, K, temperature, humidity, ph, rainfall):
-    features = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
-    features_scaled = mx.transform(features)
-    features_standardized = sc.transform(features_scaled)
-    prediction = randclf.predict(features_standardized)
-    crop_name = crop_dict.get(int(prediction[0]), "Unknown crop")
-    return crop_name
+# Train the models (XGBoost and Neural Network)
+X = df[['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']]  # Exclude 'arrival_date'
+y = df['suggested_price']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Flask Routes
+xgb_model = xgb.XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6)
+xgb_model.fit(X_train, y_train)
+pickle.dump(xgb_model, open('cropPricePredictionModel.pkl', 'wb'))
+
+nn_model = Sequential([
+    Dense(128, input_shape=(X_train.shape[1],), activation='relu'),
+    Dense(64, activation='relu'),
+    Dense(32, activation='relu'),
+    Dense(1)  # Output layer for regression
+])
+nn_model.compile(optimizer='adam', loss='mean_squared_error')
+nn_model.fit(X_train, y_train, epochs=50, batch_size=128, validation_data=(X_test, y_test))
+nn_model.save('nn_model.keras')  # Save model in Keras native format
+
 @app.route('/')
 def home():
     return "Welcome to the Crop Recommendation API!"
@@ -79,29 +98,24 @@ def home():
 @app.route('/recommend', methods=['POST'])
 def recommend():
     data = request.get_json()
-    required_fields = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']
-    if not all(key in data for key in required_fields):
+    if not all(key in data for key in ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']):
         return jsonify({'error': 'Missing input data'}), 400
 
-    prediction = recommendation(
-        data['N'], data['P'], data['K'], 
-        data['temperature'], data['humidity'], 
-        data['ph'], data['rainfall']
-    )
+    N = data['N']
+    P = data['P']
+    K = data['K']
+    temperature = data['temperature']
+    humidity = data['humidity']
+    ph = data['ph']
+    rainfall = data['rainfall']
+
+    prediction = recommendation(N, P, K, temperature, humidity, ph, rainfall)
 
     return jsonify({'predicted_crop': prediction})
-    
+
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
-    app.logger.info(f"Received data for prediction: {data}")
-    
-    required_fields = ['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']
-    for field in required_fields:
-        if field not in data:
-            app.logger.error(f"Missing field: {field}")
-            return jsonify({'error': f'Missing field: {field}'}), 400
-    
     try:
         new_data = pd.DataFrame({
             'state': [data['state']],
@@ -112,13 +126,16 @@ def predict():
             'max_price': [data['max_price']]
         })
         
+        # Ensure data types are correct
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
-        
+
+        # Handling unseen labels by assigning a default encoding
         def encode_column(column_name, encoder):
             try:
                 return encoder.transform(new_data[column_name])
             except ValueError:
+                # Add new classes to the encoder
                 unique_values = list(encoder.classes_) + list(new_data[column_name].unique())
                 encoder.classes_ = np.array(unique_values)
                 return encoder.transform(new_data[column_name])
@@ -129,8 +146,7 @@ def predict():
             new_data['market'] = encode_column('market', market_encoder)
             new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
         except ValueError as e:
-            app.logger.error(f'Encoding error: {str(e)}')
-            return jsonify({'error': f'Encoding error: {str(e)}'}), 400
+            return jsonify({'error': f'Encoding error: {str(e)}')}), 400
 
         predicted_price_xgb = xgb_model.predict(new_data)
         predicted_price_xgb = float(predicted_price_xgb[0])
@@ -142,8 +158,7 @@ def predict():
             'predicted_price_nn': predicted_price_nn
         })
     except Exception as e:
-        app.logger.error(f'Unexpected error: {str(e)}')
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+        return jsonify({'error': f'Unexpected error: {str(e)}')}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
