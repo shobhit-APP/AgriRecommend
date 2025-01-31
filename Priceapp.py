@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 import logging
 import os
-from memory_profiler import profile
 
 app = Flask(__name__)
 
@@ -119,7 +118,6 @@ def recommend():
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-@profile
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
