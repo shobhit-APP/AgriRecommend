@@ -112,11 +112,16 @@ def recommend():
     prediction = recommendation(N, P, K, temperature, humidity, ph, rainfall)
 
     return jsonify({'predicted_crop': prediction})
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         data = request.get_json()
-        print("Received Data: ", data)  # Log received data
+        logging.info("Received Data: %s", data)  # Log received data
 
         new_data = pd.DataFrame({
             'state': [data['state']],
@@ -130,9 +135,8 @@ def predict():
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
 
-        print("Data after initial processing: ", new_data)  # Log processed data
+        logging.info("Data after initial processing: %s", new_data)  # Log processed data
 
-        # Handling unseen labels by assigning a default encoding
         def encode_column(column_name, encoder):
             try:
                 return encoder.transform(new_data[column_name])
@@ -140,13 +144,13 @@ def predict():
                 unique_values = list(encoder.classes_) + list(new_data[column_name].unique())
                 encoder.classes_ = np.array(unique_values)
                 return encoder.transform(new_data[column_name])
-        
+
         new_data['state'] = encode_column('state', state_encoder)
         new_data['district'] = encode_column('district', district_encoder)
         new_data['market'] = encode_column('market', market_encoder)
         new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
 
-        print("Data after encoding: ", new_data)  # Log encoded data
+        logging.info("Data after encoding: %s", new_data)  # Log encoded data
 
         predicted_price_xgb = xgb_model.predict(new_data)
         predicted_price_xgb = float(predicted_price_xgb[0])
@@ -158,11 +162,16 @@ def predict():
             'predicted_price_nn': predicted_price_nn
         })
     except ValueError as ve:
-        print(f"ValueError: {str(ve)}")  # Log specific error
+        logging.error("ValueError: %s", str(ve))  # Log specific error
         return jsonify({'error': f'ValueError: {str(ve)}'}), 400
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")  # Log unexpected error
+        logging.error("Unexpected error: %s", str(e))  # Log unexpected error
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
+    logging.info("Running on port: %d", port)  # Debug statement
+    app.run(host="0.0.0.0", port=port)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
