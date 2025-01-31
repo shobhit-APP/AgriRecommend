@@ -9,11 +9,13 @@ from sklearn.model_selection import train_test_split
 from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
-
+import os
 app = Flask(__name__)
 
-# Load Dataset
-df = pd.read_csv('Cropprice.csv')
+# Adjust the path according to the actual location of Cropprice.csv
+file_path = os.path.join('Model', 'Cropprice.csv')
+df = pd.read_csv(file_path)
+
 df.ffill(inplace=True)  # Handle missing values
 
 # Load Pretrained Models & Scalers
@@ -118,7 +120,6 @@ def predict():
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
     print(f"Running on port: {port}")
     app.run(host="0.0.0.0", port=port)
