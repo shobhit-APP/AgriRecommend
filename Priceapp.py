@@ -10,10 +10,11 @@ from flask import Flask, request, jsonify
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 import os
+
 app = Flask(__name__)
 
 # Adjust the path according to the actual location of Cropprice.csv
-file_path = os.path.join('Model', 'Cropprice.csv')
+file_path = os.path.join('model', 'Cropprice.csv')
 df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
@@ -24,6 +25,7 @@ stand_path = os.path.join('model', 'standscaler.pkl')
 model_path = os.path.join('model', 'model.pkl')
 xgb_model_path = os.path.join('model', 'cropPricePredictionModel.pkl')
 nn_model_path = os.path.join('model', 'nn_model.keras')
+
 # Load Pretrained Models & Scalers
 with open(minmax_path, 'rb') as minmax_file:
     mx = pickle.load(minmax_file)
