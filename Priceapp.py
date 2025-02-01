@@ -17,17 +17,14 @@ import gc
 
 app = Flask(__name__)
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 # Adjust the path according to the actual location of Cropprice.csv
 file_path = os.path.join('Model', 'Cropprice.csv')
 df = pd.read_csv(file_path)
 
 df.ffill(inplace=True)  # Handle missing values
-
-# Check if 'arrival_date' column exists
-if 'arrivaldate' in df.columns:
-    df['arrivaldate'] = pd.to_datetime(df['arrivaldate'])
-else:
-    print("Column 'arrivaldate' is missing from the dataset")
 
 # Adjust paths according to your project structure
 minmax_path = os.path.join('Model', 'minmaxscaler.pkl')
@@ -45,9 +42,6 @@ with open(stand_path, 'rb') as stand_file:
 
 with open(model_path, 'rb') as model_file:
     randclf = pickle.load(model_file)
-
-xgb_model = pickle.load(open(xgb_model_path, 'rb'))
-nn_model = load_model(nn_model_path)  # Load neural network model
 
 # Crop dictionary to map numbers back to crop names
 crop_dict = {
@@ -83,7 +77,7 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price','arrivalDate']]  
+X = df[['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']]  # Removed arrivalDate
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -92,7 +86,7 @@ xgb_model.fit(X_train, y_train)
 pickle.dump(xgb_model, open('cropPricePredictionModel.pkl', 'wb'))
 
 nn_model = Sequential([
-    Dense(128, input_shape=(X_train.shape[1],), activation='relu'),
+    Dense(128, input_shape=(X_train.shape[1],), activation='relu'),  # Updated input shape
     Dense(64, activation='relu'),
     Dense(32, activation='relu'),
     Dense(1)  # Output layer for regression
@@ -123,15 +117,12 @@ def recommend():
 
     return jsonify({'predicted_crop': prediction})
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
 @app.route('/predict', methods=['POST'])
 @profile
 def predict():
     try:
         data = request.get_json()
-        logging.info("Received Data: %s", data)  # Log received data
+        logging.info("Received Data: %s", data)
 
         new_data = pd.DataFrame({
             'state': [data['state']],
@@ -139,14 +130,12 @@ def predict():
             'market': [data['market']],
             'crop_name': [data['crop_name']],
             'min_price': [data['min_price']],
-            'max_price': [data['max_price']],
-            'arrivalDate': [data['arrivalDate']]
+            'max_price': [data['max_price']]
         })
 
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
-        new_data['arrivalDate'] = new_data['arrivalDate'].astype(float)
-        logging.info("Data after initial processing: %s", new_data)  # Log processed data
+        logging.info("Data after initial processing: %s", new_data)
 
         def encode_column(column_name, encoder):
             try:
@@ -161,9 +150,8 @@ def predict():
         new_data['market'] = encode_column('market', market_encoder)
         new_data['crop_name'] = encode_column('crop_name', crop_name_encoder)
 
-        logging.info("Data after encoding: %s", new_data)  # Log encoded data
+        logging.info("Data after encoding: %s", new_data)
 
-        # Ensure the feature names are consistent with those used during fitting
         new_data_checked = check_array(new_data, dtype=np.float32, ensure_2d=True, allow_nd=False)
         new_data_scaled = mx.transform(new_data_checked)
         new_data_standardized = sc.transform(new_data_scaled)
@@ -173,7 +161,6 @@ def predict():
         predicted_price_nn = nn_model.predict(new_data_standardized)
         predicted_price_nn = float(predicted_price_nn[0][0])
 
-        # Run garbage collection to free up memory
         gc.collect()
 
         return jsonify({
@@ -181,13 +168,13 @@ def predict():
             'predicted_price_nn': predicted_price_nn
         })
     except ValueError as ve:
-        logging.error("ValueError: %s", str(ve))  # Log specific error
+        logging.error("ValueError: %s", str(ve))
         return jsonify({'error': f'ValueError: %s' % str(ve)}), 400
     except Exception as e:
-        logging.error("Unexpected error: %s", str(e))  # Log unexpected error
+        logging.error("Unexpected error: %s", str(e))
         return jsonify({'error': f'Unexpected error: %s' % str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # Get PORT from Render, default to 5000
-    logging.info("Running on port: %d", port)  # Debug statement
+    port = int(os.environ.get("PORT", 5000))
+    logging.info("Running on port: %d", port)
     app.run(host="0.0.0.0", port=port)
