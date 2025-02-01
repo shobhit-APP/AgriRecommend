@@ -77,22 +77,32 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']]  # Removed arrivalDate
+X = df[['state', 'district', 'market', 'crop_name', 'min_price', 'max_price']]  # Ensure all features are included
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# Fit and save scalers with the same features
+minmax_scaler = MinMaxScaler()
+standard_scaler = StandardScaler()
+
+X_train_scaled = minmax_scaler.fit_transform(X_train)
+X_train_standardized = standard_scaler.fit_transform(X_train_scaled)
+
+pickle.dump(minmax_scaler, open('minmaxscaler.pkl', 'wb'))
+pickle.dump(standard_scaler, open('standscaler.pkl', 'wb'))
+
 xgb_model = xgb.XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6)
-xgb_model.fit(X_train, y_train)
+xgb_model.fit(X_train_standardized, y_train)
 pickle.dump(xgb_model, open('cropPricePredictionModel.pkl', 'wb'))
 
 nn_model = Sequential([
-    Dense(128, input_shape=(X_train.shape[1],), activation='relu'),  # Updated input shape
+    Dense(128, input_shape=(X_train.shape[1],), activation='relu'),
     Dense(64, activation='relu'),
     Dense(32, activation='relu'),
     Dense(1)  # Output layer for regression
 ])
 nn_model.compile(optimizer='adam', loss='mean_squared_error')
-nn_model.fit(X_train, y_train, epochs=20, batch_size=32, validation_data=(X_test, y_test))
+nn_model.fit(X_train_standardized, y_train, epochs=50, batch_size=128, validation_data=(standard_scaler.transform(minmax_scaler.transform(X_test)), y_test))
 nn_model.save('nn_model.keras')  # Save model in Keras native format
 
 @app.route('/')
@@ -153,8 +163,8 @@ def predict():
         logging.info("Data after encoding: %s", new_data)
 
         new_data_checked = check_array(new_data, dtype=np.float32, ensure_2d=True, allow_nd=False)
-        new_data_scaled = mx.transform(new_data_checked)
-        new_data_standardized = sc.transform(new_data_scaled)
+        new_data_scaled = minmax_scaler.transform(new_data_checked)
+        new_data_standardized = standard_scaler.transform(new_data_scaled)
 
         predicted_price_xgb = xgb_model.predict(new_data_standardized)
         predicted_price_xgb = float(predicted_price_xgb[0])
@@ -178,3 +188,4 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logging.info("Running on port: %d", port)
     app.run(host="0.0.0.0", port=port)
+
