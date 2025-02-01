@@ -83,7 +83,7 @@ market_encoder = fit_label_encoders(df, 'market', ['Local Market', 'Shimoga Mark
 crop_name_encoder = fit_label_encoders(df, 'crop_name', ['Wheat'])
 
 # Train the models (XGBoost and Neural Network)
-X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price']]  
+X = df[['state', 'district', 'market', 'crop_name','min_price', 'max_price','arrivalDate']]  
 y = df['suggested_price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -140,12 +140,12 @@ def predict():
             'crop_name': [data['crop_name']],
             'min_price': [data['min_price']],
             'max_price': [data['max_price']],
-            'arrivaldate': [data['arrivaldate']]
+            'arrivalDate': [data['arrivalDate']]
         })
 
         new_data['min_price'] = new_data['min_price'].astype(float)
         new_data['max_price'] = new_data['max_price'].astype(float)
-        new_data['arrivaldate'] = new_data['arrivaldate'].astype(float)
+        new_data['arrivalDate'] = new_data['arrivalDate'].astype(float)
         logging.info("Data after initial processing: %s", new_data)  # Log processed data
 
         def encode_column(column_name, encoder):
