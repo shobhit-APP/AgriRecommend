@@ -1,4 +1,4 @@
-Here is the detailed README.md for your repository:
+
 
 AgriPredict
 Project Title and Description
