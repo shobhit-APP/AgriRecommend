@@ -1,8 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
-name: Build and deploy Python app to Azure Web App - crop-predictor-app
+name: Build and deploy CropPrediction ML models to DigitalOcean Droplet
 
 on:
   push:
@@ -14,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # Required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -28,54 +24,54 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-      
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment jobs
+        run: |
+          zip -r release.zip Models/ Recommend.py requirements.txt
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
+          name: crop-prediction-app
+          path: release.zip
+          if-no-files-found: warn
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: python-app
+          name: crop-prediction-app
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
-      - name: Login to Azure
-        uses: azure/login@v2
+      - name: Deploy to DigitalOcean
+        uses: appleboy/scp-action@master
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_1BDEA02790A047BC9A99C6F0EC49D5F0 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_514ADC969F8D4EAB93097E47F889DF64 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_ED26DFE8DA6B4E389450A08C87371A52 }}
+          host: 139.59.10.226
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          source: "Models/,predict.py,requirements.txt"
+          target: "/root/crop-prediction/"
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
+      - name: Start prediction service
+        uses: appleboy/ssh-action@master
         with:
-          app-name: 'crop-predictor-app'
-          slot-name: 'Production'
-          
+          host: 139.59.10.226
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            cd /root/crop-prediction
+            # Install dependencies
+            pip install -r requirements.txt || echo "Dependencies already installed"
+            # Kill existing process if running
+            pkill -f 'python predict.py' || true
+            # Start prediction script with nohup
+            nohup python predict.py > app.log 2>&1 &
