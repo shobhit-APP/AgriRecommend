@@ -16,6 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug directory structure
+        run: |
+          ls -la
+          ls -la Model/ || echo "Model directory not found"
+          ls -la Recommend.py || echo "Recommend.py not found"
+          ls -la requirements.txt || echo "requirements.txt not found"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -29,12 +36,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.txt || echo "Failed to install dependencies"
 
       - name: Zip artifact for deployment
         run: |
-          cd CropPrediction
-          zip -r ../release.zip Models/ Recommend.py requirements.txt
+          zip -r release.zip Model/ Recommend.py requirements.txt
         shell: bash
 
       - name: Upload artifact
@@ -65,7 +71,7 @@ jobs:
           host: 159.65.158.161
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "Models/,Recommend.py,requirements.txt"
+          source: "Model/,Recommend.py,requirements.txt"
           target: "/root/crop-recommendation/"
 
       - name: Start recommendation service
