@@ -91,9 +91,14 @@ jobs:
             # Activate virtual environment and install dependencies
             source venv/bin/activate
             python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt || echo "Dependencies installation failed"
-            # Check if port 8080 is in use
-            if netstat -tuln | grep -q 8080; then
+            python3 -m pip install -r requirements.txt || { echo "Dependencies installation failed"; exit 1; }
+            # Check if port 8080 is in use using ss (fallback if netstat is unavailable)
+            if command -v netstat >/dev/null 2>&1; then
+              PORT_CHECK="netstat -tuln | grep -q 8080"
+            else
+              PORT_CHECK="ss -tuln | grep -q 8080"
+            fi
+            if $PORT_CHECK; then
               echo "Port 8080 is in use, attempting to free it"
               pkill -f 'python3' || true
             fi
@@ -110,6 +115,7 @@ jobs:
               cat app.log
             else
               echo "app.log not created, app failed to start"
+              exit 1
             fi
             # Check if process is running
             ps aux | grep 'python3 Recommend.py' || echo "Process not running"
