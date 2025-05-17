@@ -80,23 +80,23 @@ jobs:
           host: 159.65.158.161
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
+          timeout: 60s  # Increase timeout to 60 seconds
           script: |
             cd /root/crop-recommendation
-            # Check memory before deployment
-            echo "Memory before deployment:"
+            echo "Step 1: Checking memory before deployment"
             free -m
-            # Fix permissions
-            chown -R root:root Model Recommend.py requirements.txt
-            # Activate virtual environment
-            source venv/bin/activate
-            # Kill existing process if running
+            echo "Step 2: Fixing permissions"
+            chown -R root:root Model Recommend.py requirements.txt || { echo "Failed to fix permissions"; exit 1; }
+            echo "Step 3: Activating virtual environment"
+            source venv/bin/activate || { echo "Failed to activate virtual environment"; exit 1; }
+            echo "Step 4: Killing existing process"
             pkill -f 'python3 Recommend.py' || true
-            # Set environment variable for port
+            echo "Step 5: Setting port"
             export PORT=8080
-            # Start the app with nohup
+            echo "Step 6: Starting app with nohup"
             nohup python3 Recommend.py > app.log 2>&1 &
             sleep 2
-            # Check if app.log was created
+            echo "Step 7: Checking if app.log was created"
             if [ -f "app.log" ]; then
               echo "app.log created, checking contents"
               cat app.log
@@ -104,9 +104,8 @@ jobs:
               echo "app.log not created, app failed to start"
               exit 1
             fi
-            # Check if process is running
+            echo "Step 8: Checking if process is running"
             ps aux | grep '[p]ython3 Recommend.py' || echo "Process not running"
-            # Check memory after deployment
-            echo "Memory after deployment:"
+            echo "Step 9: Checking memory after deployment"
             free -m
             echo "Deployment completed"
