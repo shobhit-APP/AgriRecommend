@@ -1,4 +1,4 @@
-name: Build and deploy CropPrediction ML models to DigitalOcean Droplet
+name: Deploy Crop Recommendation ML Model to DigitalOcean
 
 on:
   push:
@@ -13,43 +13,50 @@ jobs:
       contents: read # Required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python version
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Create and start virtual environment
+      - name: Create and activate virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
+          pip install --upgrade pip
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r CropPrediction/requirements.txt
 
       - name: Zip artifact for deployment
         run: |
-          zip -r release.zip Models/ Recommend.py requirements.txt
-      - name: Upload artifact for deployment job
+          cd CropPrediction
+          zip -r ../release.zip Models/ Recommend.py requirements.txt
+        shell: bash
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: crop-prediction-app
+          name: crop-recommendation-app
           path: release.zip
-          if-no-files-found: warn
+          if-no-files-found: error # Fail if no files are found
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: Production
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: crop-prediction-app
+          name: crop-recommendation-app
 
-      - name: Unzip artifact for deployment
+      - name: Unzip artifact
         run: unzip release.zip
 
       - name: Deploy to DigitalOcean
@@ -58,20 +65,24 @@ jobs:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "Models/,predict.py,requirements.txt"
-          target: "/root/crop-prediction/"
+          source: "Models/,Recommend.py,requirements.txt"
+          target: "/root/crop-recommendation/"
 
-      - name: Start prediction service
+      - name: Start recommendation service
         uses: appleboy/ssh-action@master
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
-            cd /root/crop-prediction
+            cd /root/crop-recommendation
             # Install dependencies
-            pip install -r requirements.txt || echo "Dependencies already installed"
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r requirements.txt || echo "Dependencies installation failed"
             # Kill existing process if running
-            pkill -f 'python predict.py' || true
-            # Start prediction script with nohup
-            nohup python predict.py > app.log 2>&1 &
+            pkill -f 'python3 Recommend.py' || true
+            # Set environment variable for port
+            export PORT=8080
+            # Start recommendation script with nohup
+            nohup python3 Recommend.py > app.log 2>&1 &
+            echo "Deployment completed"
