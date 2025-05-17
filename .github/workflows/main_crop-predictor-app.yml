@@ -82,25 +82,20 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/crop-recommendation
+            # Check memory before deployment
+            echo "Memory before deployment:"
+            free -m
             # Fix permissions
             chown -R root:root Model Recommend.py requirements.txt
-            # Create virtual environment if it doesn't exist
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
-            fi
-            # Activate virtual environment and install dependencies
+            # Activate virtual environment
             source venv/bin/activate
-            python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt || { echo "Dependencies installation failed"; exit 1; }
-            # Skip port check for now since manual run worked
-            echo "Skipping port check, assuming port 8080 is free"
             # Kill existing process if running
             pkill -f 'python3 Recommend.py' || true
             # Set environment variable for port
             export PORT=8080
-            # Start recommendation script with nohup
+            # Start the app with nohup
             nohup python3 Recommend.py > app.log 2>&1 &
-            sleep 5
+            sleep 2
             # Check if app.log was created
             if [ -f "app.log" ]; then
               echo "app.log created, checking contents"
@@ -111,6 +106,7 @@ jobs:
             fi
             # Check if process is running
             ps aux | grep '[p]ython3 Recommend.py' || echo "Process not running"
-            # Check memory usage
+            # Check memory after deployment
+            echo "Memory after deployment:"
             free -m
             echo "Deployment completed"
