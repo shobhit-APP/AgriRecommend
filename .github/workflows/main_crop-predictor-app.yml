@@ -80,23 +80,20 @@ jobs:
           host: 159.65.158.161
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          timeout: 60s  # Increase timeout to 60 seconds
+          timeout: 120s  # Increase timeout further to 120 seconds
           script: |
             cd /root/crop-recommendation
-            echo "Step 1: Checking memory before deployment"
-            free -m
-            echo "Step 2: Fixing permissions"
-            chown -R root:root Model Recommend.py requirements.txt || { echo "Failed to fix permissions"; exit 1; }
-            echo "Step 3: Activating virtual environment"
+            echo "Step 1: Activating virtual environment"
             source venv/bin/activate || { echo "Failed to activate virtual environment"; exit 1; }
-            echo "Step 4: Killing existing process"
+            echo "Step 2: Killing existing process"
             pkill -f 'python3 Recommend.py' || true
-            echo "Step 5: Setting port"
-            export PORT=8080
-            echo "Step 6: Starting app with nohup"
+            echo "Step 3: Verifying no process is running"
+            ps aux | grep '[p]ython3 Recommend.py' || echo "No existing process found"
+            echo "Step 4: Starting app with nohup"
             nohup python3 Recommend.py > app.log 2>&1 &
+            echo "Step 5: Waiting for app to start"
             sleep 2
-            echo "Step 7: Checking if app.log was created"
+            echo "Step 6: Checking if app.log was created"
             if [ -f "app.log" ]; then
               echo "app.log created, checking contents"
               cat app.log
@@ -104,8 +101,6 @@ jobs:
               echo "app.log not created, app failed to start"
               exit 1
             fi
-            echo "Step 8: Checking if process is running"
+            echo "Step 7: Checking if process is running"
             ps aux | grep '[p]ython3 Recommend.py' || echo "Process not running"
-            echo "Step 9: Checking memory after deployment"
-            free -m
             echo "Deployment completed"
