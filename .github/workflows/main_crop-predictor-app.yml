@@ -92,13 +92,18 @@ jobs:
             source venv/bin/activate
             python3 -m pip install --upgrade pip
             python3 -m pip install -r requirements.txt || { echo "Dependencies installation failed"; exit 1; }
-            # Check if port 8080 is in use using ss (fallback if netstat is unavailable)
+            # Check if port 8080 is in use (using ss or netstat)
+            PORT_IN_USE=0
             if command -v netstat >/dev/null 2>&1; then
-              PORT_CHECK="netstat -tuln | grep -q 8080"
+              echo "Using netstat to check port 8080"
+              netstat -tuln | grep 8080 >/dev/null 2>&1 && PORT_IN_USE=1
+            elif command -v ss >/dev/null 2>&1; then
+              echo "Using ss to check port 8080"
+              ss -tuln | grep ':8080' >/dev/null 2>&1 && PORT_IN_USE=1
             else
-              PORT_CHECK="ss -tuln | grep -q 8080"
+              echo "Neither netstat nor ss is available, skipping port check"
             fi
-            if $PORT_CHECK; then
+            if [ $PORT_IN_USE -eq 1 ]; then
               echo "Port 8080 is in use, attempting to free it"
               pkill -f 'python3' || true
             fi
@@ -118,5 +123,5 @@ jobs:
               exit 1
             fi
             # Check if process is running
-            ps aux | grep 'python3 Recommend.py' || echo "Process not running"
+            ps aux | grep '[p]ython3 Recommend.py' || echo "Process not running"
             echo "Deployment completed"
