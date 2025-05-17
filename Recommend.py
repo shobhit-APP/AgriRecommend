@@ -30,14 +30,12 @@ with open(model_path, 'rb') as model_file:
     randclf = pickle.load(model_file)  # RandomForestClassifier for Crop Recommendation
 
 # ✅ Crop Dictionary
-  crop_dict = {
+crop_dict = {
     1: 'rice', 2: 'maize', 3: 'jute', 4: 'cotton', 5: 'coconut',
     6: 'papaya', 7: 'orange', 8: 'apple', 9: 'muskmelon', 10: 'watermelon',
     11: 'grapes', 12: 'mango', 13: 'banana', 14: 'pomegranate', 15: 'lentil',
     16: 'blackgram', 17: 'mungbean', 18: 'mothbeans', 19: 'pigeonpeas',
     20: 'kidneybeans', 21: 'chickpea', 22: 'coffee',
-
-    # Additional crops
     23: 'sugarcane', 24: 'barley', 25: 'wheat', 26: 'mustard',
     27: 'groundnut', 28: 'soybean', 29: 'sesame', 30: 'onion',
     31: 'potato', 32: 'tomato', 33: 'brinjal', 34: 'cauliflower',
