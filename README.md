@@ -20,7 +20,7 @@
 
 ## 🎯 Overview
 
-AgriRecommend is an intelligent Flask-based machine learning platform designed to empower farmers and agricultural stakeholders with data-driven insights. By leveraging advanced ML algorithms, the system provides accurate crop recommendations.
+The Crop Recommendation Model uses machine learning to suggest the best crops based on soil nutrients, pH, temperature, humidity, and rainfall. Trained on agricultural data, it helps farmers choose suitable crops, improve yield, and reduce risk, promoting sustainable farming and better productivity through data-driven decisions.
 
 ### 🎯 Problem Statement
 Modern agriculture faces challenges in:
@@ -29,21 +29,8 @@ Modern agriculture faces challenges in:
 - Limited access to agricultural expertise
 
 ### 💡 Solution
-AgriRecommend addresses these challenges by providing:
 - **Intelligent crop recommendations** based on environmental parameters
 - **RESTful API** for easy integration with existing systems
-## ✨ Features
-
-### 🌱 Core Functionality
-- **Crop Recommendation System**: ML-powered suggestions based on soil properties, climate data, and regional factors
-- **Multi-parameter Analysis**: Considers NPK levels, pH, rainfall, temperature, and humidity
-
-### 🔧 Technical Features
-- **RESTful API**: Clean, documented endpoints for all functionalities
-- **Scalable Architecture**: Flask-based backend with modular design
-- **Model Persistence**: Pre-trained models with pickle serialization
-- **Data Preprocessing**: Automated feature scaling and encoding
-- **Fast Response**: Optimized for quick predictions (< 100ms)
 
 ## 🏗️ Architecture
 
@@ -72,8 +59,8 @@ AgriRecommend/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/shobhit-APP/AgriPredict.git
-   cd AgriPredict
+   git clone https://github.com/shobhit-APP/AgriRecommend.git
+   cd AgriRecommend
    ```
 
 2. **Create and activate virtual environment**
@@ -128,7 +115,7 @@ http://127.0.0.1:5000
 
 ####  Crop Recommendation
 
-**Endpoint:** `POST /recommend-crop`
+**Endpoint:** `POST /recommend`
 
 **Description:** Recommends the best crop based on soil and climate parameters.
 
@@ -168,7 +155,7 @@ import requests
 import json
 
 # Crop Recommendation
-url = "http://127.0.0.1:5000/recommend-crop"
+url = "http://127.0.0.1:5000/recommend"
 data = {
     "N": 90, "P": 42, "K": 43,
     "temperature": 20.87, "humidity": 82.00,
@@ -183,7 +170,7 @@ print(f"Recommended crop: {result['recommended_crop']}")
 ### cURL Example
 ```bash
 # Crop Recommendation
-curl -X POST http://127.0.0.1:5000/recommend-crop \
+curl -X POST http://127.0.0.1:5000/recommend \
   -H "Content-Type: application/json" \
   -d '{
     "N": 90, "P": 42, "K": 43,
