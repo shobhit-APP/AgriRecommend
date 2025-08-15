@@ -19,7 +19,7 @@ jobs:
       - name: Debug directory structure
         run: |
           ls -la
-          ls -la Models/ || echo "Models directory not found"
+          ls -la Model/ || echo "Model directory not found"
           ls -la Recommend.py || echo "Recommend.py not found"
           ls -la requirements.txt || echo "requirements.txt not found"
 
@@ -41,7 +41,7 @@ jobs:
 
       - name: Zip artifact for deployment
         run: |
-          zip -r release.zip Models/ Recommend.py requirements.txt
+          zip -r release.zip Model/ Recommend.py requirements.txt
           ls -l release.zip
         shell: bash
 
@@ -75,7 +75,7 @@ jobs:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USERNAME }}
           password: ${{ secrets.AZURE_VM_PASSWORD }}
-          source: "Models/,Recommend.py,requirements.txt"
+          source: "Model/,Recommend.py,requirements.txt"
           target: "/home/${{ secrets.AZURE_VM_USERNAME }}/crop-recommendation/"
           strip_components: 0
 
@@ -133,3 +133,4 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl enable crop-recommendation.service
             sudo systemctl restart crop-recommendation.service
+
