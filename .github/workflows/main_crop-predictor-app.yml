@@ -1,4 +1,4 @@
-name: Deploy Crop Recommendation ML Model to DigitalOcean
+name: Deploy Crop Recommendation ML Model to Azure VM
 
 on:
   push:
@@ -69,37 +69,39 @@ jobs:
           unzip release.zip
           ls -l
 
-      - name: Deploy to DigitalOcean
-        uses: appleboy/scp-action@v0.1.5
+      # Azure VM ke liye SCP action (Password-based)
+      - name: Deploy to Azure VM
+        uses: appleboy/scp-action@v0.1.7
         with:
-          host: 159.65.158.161
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
           source: "Models/,Recommend.py,requirements.txt"
-          target: "/root/crop-recommendation/"
+          target: "/home/${{ secrets.AZURE_VM_USERNAME }}/crop-recommendation/"
           strip_components: 0
 
-      - name: Start recommendation service
-        uses: appleboy/ssh-action@v0.1.6
+      # Azure VM pe service start karna (Password-based)
+      - name: Start recommendation service on Azure VM
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          host: 159.65.158.161
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          password: ${{ secrets.AZURE_VM_PASSWORD }}
           script: |
             set -e
 
-            cd /root/crop-recommendation
+            cd /home/${{ secrets.AZURE_VM_USERNAME }}/crop-recommendation
 
             echo "Fixing file permissions..."
-            chown root:root Recommend.py requirements.txt
+            sudo chown $USER:$USER Recommend.py requirements.txt
             chmod 644 Recommend.py requirements.txt
-            chown root:root app.log || true
+            sudo chown $USER:$USER app.log || true
             chmod 644 app.log || true
 
             echo "Checking port 8080..."
-            if netstat -tuln | grep :8080; then
+            if sudo netstat -tuln | grep :8080; then
               echo "Port 8080 is in use, killing process..."
-              lsof -i :8080 | grep LISTEN | awk '{print $2}' | xargs kill -9 || true
+              sudo lsof -i :8080 | grep LISTEN | awk '{print $2}' | sudo xargs kill -9 || true
               sleep 2
             fi
 
@@ -107,7 +109,7 @@ jobs:
             free -m
 
             echo "Stopping existing service..."
-            systemctl stop crop-recommendation.service || true
+            sudo systemctl stop crop-recommendation.service || true
 
             echo "Setting up virtual environment..."
             rm -rf venv
@@ -126,20 +128,20 @@ jobs:
             done
 
             echo "Setting up systemd service..."
-            cat > /etc/systemd/system/crop-recommendation.service << 'EOF'
+            sudo tee /etc/systemd/system/crop-recommendation.service > /dev/null << EOF
             [Unit]
             Description=Crop Recommendation Flask App
             After=network.target
 
             [Service]
             Type=simple
-            User=root
-            WorkingDirectory=/root/crop-recommendation
+            User=$USER
+            WorkingDirectory=/home/$USER/crop-recommendation
             Environment="PORT=8080"
-            ExecStart=/root/crop-recommendation/venv/bin/python /root/crop-recommendation/Recommend.py
+            ExecStart=/home/$USER/crop-recommendation/venv/bin/python /home/$USER/crop-recommendation/Recommend.py
             Restart=always
-            StandardOutput=append:/root/crop-recommendation/app.log
-            StandardError=append:/root/crop-recommendation/app.log
+            StandardOutput=append:/home/$USER/crop-recommendation/app.log
+            StandardError=append:/home/$USER/crop-recommendation/app.log
             MemoryMax=2500M
 
             [Install]
@@ -147,9 +149,9 @@ jobs:
             EOF
 
             echo "Reloading systemd and starting service..."
-            systemctl daemon-reload
-            systemctl enable crop-recommendation.service
-            systemctl restart crop-recommendation.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable crop-recommendation.service
+            sudo systemctl restart crop-recommendation.service
 
             echo "Waiting for Flask app to start (up to 5 minutes)..."
             for i in {1..30}; do
@@ -161,20 +163,21 @@ jobs:
               sleep 10
               if [ $i -eq 30 ]; then
                 echo "Flask app failed to start within 5 minutes"
-                systemctl status crop-recommendation.service
-                journalctl -u crop-recommendation.service -n 50
+                sudo systemctl status crop-recommendation.service
+                sudo journalctl -u crop-recommendation.service -n 50
                 cat app.log
                 free -m
                 exit 1
               fi
             done
 
-            if systemctl is-active --quiet crop-recommendation.service; then
+            if sudo systemctl is-active --quiet crop-recommendation.service; then
               echo "Flask app started successfully via systemd"
+              echo "Application is accessible at: http://${{ secrets.AZURE_VM_HOST }}:8080"
             else
               echo "Failed to start Flask app via systemd"
-              systemctl status crop-recommendation.service
-              journalctl -u crop-recommendation.service -n 50
+              sudo systemctl status crop-recommendation.service
+              sudo journalctl -u crop-recommendation.service -n 50
               cat app.log
               free -m
               exit 1
